@@ -1,23 +1,23 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { User, Todo } from '@prisma/client';
-import { PrismaService } from 'src/prisma/prisma.service';
-import * as argon from 'argon2';
-import { AuthInterface } from './interface';
+import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
+import * as argon from 'argon2';
+import { User, Todo } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { AuthInterface } from './interface';
 
 @Injectable({})
 export class AuthService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private Jwt: JwtService,
+    private config: ConfigService) { }
   async signup(payload: AuthInterface) {
     try {
       // password section
       const hash = await argon.hash(payload.password);
       payload['hash'] = hash;
-
-      console.log({
-        payload,
-        hash,
-      });
       // save to db
       const user = await this.prisma.user.create({
         data: {
@@ -32,7 +32,6 @@ export class AuthService {
 
       return user;
     } catch (err) {
-      console.log(err);
       if (err instanceof Prisma.PrismaClientKnownRequestError) {
         throw new ForbiddenException('Email/credentials already taken.')
       }
@@ -56,10 +55,26 @@ export class AuthService {
     if (!passVerfication) {
       throw new ForbiddenException('Incorrect user credentials');
     }
-    delete user.hash;
     // throw error if pass don't match
 
     // send user
-    return user;
+    return this.signToken(user.id, user.email);
+  }
+
+  async signToken(
+    userId: number,
+    email: string,
+  ) {
+    const payload = {
+      sub: userId,
+      email,
+    }
+    const accessToken = await this.Jwt.signAsync(payload, {
+      expiresIn: '30m',
+      secret: this.config.get('JWT_SECRET'),
+    });
+    return {
+      access_token: accessToken,
+    }
   }
 }

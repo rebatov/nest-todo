@@ -10,5 +10,15 @@ services:
       POSTGRES_DB: todo
     networks:
       - todo
+  test-db:
+    image: postgres:15
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_USER: rebatov
+      POSTGRES_PASSWORD: pass123
+      POSTGRES_DB: todo
+    networks:
+      - todo
 networks:
   todo:
