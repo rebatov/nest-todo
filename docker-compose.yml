@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  dev-db:
+    image: postgres:15
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: rebatov
+      POSTGRES_PASSWORD: pass123
+      POSTGRES_DB: todo
+    networks:
+      - todo
+networks:
+  todo:
